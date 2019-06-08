@@ -16,6 +16,13 @@
 #define INIT_ROW 1
 #define MIDDLE 2
 #define ALARM_INTERVAL 1
+#define SIZE_OF_BYTES_TO_READ 1
+#define MOVE_LEFT_CHAR 'a'
+#define MOVE_RIGHT_CHAR 'd'
+#define MOVE_DOWN_CHAR 's'
+#define ROTATE_SHAPE_CHAR  'w'
+#define QUIT_CHAR 'q'
+#define FIRST_INDEX 0
 struct point{
     int row;
     int column;
@@ -31,14 +38,17 @@ bool runProg=true;
  * draw board to screen
  */
 void drawBoard(){
-    for (int i = 0; i < FRAME_SIZE; i++) {
-        for (int j = 0; j < FRAME_SIZE; j++) {
+    int i=0;
+    int j=0;
+    for (; i < FRAME_SIZE; i++) {
+        for (; j < FRAME_SIZE; j++) {
             if(board[i][j]==SHAPE_CHAR||board[i][j]==BORDER_CHAR){
                 printf("%c",board[i][j]);
             }else{
                 printf("%c",SPACE_CHAR);
             }
         }
+        j=0;
         printf("%s",UNDER_LINE);
     }
 }
@@ -46,7 +56,8 @@ void drawBoard(){
  * fill frame with boarder char
  */
 void fillFrame(){
-    for (int i = 0; i < FRAME_SIZE; i++) {
+    int i=0;
+    for (; i < FRAME_SIZE; i++) {
         //fill first row
         board[FIRST_ROW][i]=BORDER_CHAR;
         //fill last row
@@ -72,12 +83,14 @@ bool isVertical(){
  */
 void markShapeOnBord(){
     if(isVertical()){
-        for (int i=shape.beginPoint.row;i<=shape.endPoint.row;i++){
+        int i=shape.beginPoint.row;
+        for (;i<=shape.endPoint.row;i++){
             board[i][shape.endPoint.column]=SHAPE_CHAR;
         }
     }else{
         //the shape is horizontal
-        for (int i=shape.beginPoint.column;i<=shape.endPoint.column;i++){
+        int i=shape.beginPoint.column;
+        for (;i<=shape.endPoint.column;i++){
             board[shape.endPoint.row][i]=SHAPE_CHAR;
         }
     }
@@ -147,12 +160,13 @@ void rotateShape(){
  */
 void clearScreen(){
    // system("clear");
-    system("@cls||clear");
+    system("clear");
 }
 /**
  * exit program
  */
 void exitProgram(){
+    runProg=false;
     close(STDIN_FILENO);
     exit(EXIT_SUCCESS);
 }
@@ -161,12 +175,14 @@ void exitProgram(){
  */
 void deleteShape(){
     if(isVertical()){
-        for (int i=shape.beginPoint.row;i<=shape.endPoint.row;i++){
+        int i=shape.beginPoint.row;
+        for (;i<=shape.endPoint.row;i++){
             board[i][shape.endPoint.column]=SPACE_CHAR;
         }
     }else{
         //the shape is horizontal
-        for (int i=shape.beginPoint.column;i<=shape.endPoint.column;i++){
+        int i=shape.beginPoint.column;
+        for (;i<=shape.endPoint.column;i++){
             board[shape.endPoint.row][i]=SPACE_CHAR;
         }
     }
@@ -175,19 +191,54 @@ void deleteShape(){
  * alarm procedure- move shape down on board
  * @param sig
  */
-void alarmHand(int sig){
+void alarmHand(int signum,siginfo_t *info, void*ptr){
     clearScreen();
     deleteShape();
     moveShapeDown();
     markShapeOnBord();
     drawBoard();
-    signal(SIGALRM,alarmHand);
     alarm(ALARM_INTERVAL);
 }
+/**
+ * signal handler func- defines procedure for user's choice
+ * @param signum
+ * @param info
+ * @param ptr
+ */
+void signalHandler(int signum,siginfo_t *info, void*ptr){
+    char userChoice[1];
+    read(STDIN_FILENO,userChoice,SIZE_OF_BYTES_TO_READ);
+    if(userChoice[FIRST_INDEX]==QUIT_CHAR){
+        exitProgram();
+    }
+    clearScreen();
+    if(userChoice[FIRST_INDEX]==MOVE_DOWN_CHAR){
+        moveShapeDown();
+    }
+    if (userChoice[FIRST_INDEX]==MOVE_LEFT_CHAR){
+        moveShapeLeft();
+    }
+    if(userChoice[FIRST_INDEX]==MOVE_RIGHT_CHAR){
+        moveShapeRight();
+    }
+    if (userChoice[FIRST_INDEX]==ROTATE_SHAPE_CHAR){
+        rotateShape();
+    }
+    markShapeOnBord();
+    drawBoard();
+}
 int main() {
+    //initialize board and shape
     fillFrame();
     initShape();
-    signal(SIGALRM,alarmHand);
+    //initialize sigaction
+    struct sigaction act;
+    act.sa_sigaction=signalHandler;
+    sigaction(SIGUSR2,&act,NULL);
+    //initialize sigaction
+    struct sigaction alarmAct;
+    alarmAct.sa_sigaction=alarmHand;
+    sigaction(SIGALRM,&alarmAct,NULL);
     alarm(ALARM_INTERVAL);
     while (runProg){
         pause();
