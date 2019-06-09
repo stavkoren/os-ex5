@@ -18,6 +18,7 @@
 #define ROTATE_SHAPE_CHAR  'w'
 #define QUIT_CHAR 'q'
 #define FIRST_INDEX 0
+#define FAILED_VALUE -1
 #define PROG_NAME "draw.out"
 #define DIR "./draw.out"
 /**
@@ -64,27 +65,38 @@ int main() {
     if(pipe(fd)<0){
         writeErrorMessage();
     }
-    if(pid=fork()<0){
+    if((pid=fork())<0){
         writeErrorMessage();
     }else{
         if(pid>0){
             //parent
             char input [SIZE_OF_BUF]={INIT_VALUE};
             //close the read fd
-            close(fd[FD_READ_INDEX]);
+            if(close(fd[FD_READ_INDEX])==FAILED_VALUE){
+                writeErrorMessage();
+            }
             while (input[FIRST_INDEX]!=QUIT_CHAR){
                 input[FIRST_INDEX]=getch();
                 if(checkValidation(input)){
-                    write(fd[FD_WRITE_INDEX],input, sizeof(input));
-                    kill(pid,SIGUSR2);
+                    if(write(fd[FD_WRITE_INDEX],input, sizeof(input))==FAILED_VALUE){
+                        writeErrorMessage();
+                    }
+                    if(kill(pid,SIGUSR2)==FAILED_VALUE){
+                        writeErrorMessage();
+                    }
                 }
             }
-            close(fd[FD_WRITE_INDEX]);
+            if(close(fd[FD_WRITE_INDEX]==FAILED_VALUE)){
+                writeErrorMessage();
+            }
+
         }else{
             //child
-            close(fd[FD_WRITE_INDEX]);
+           close(fd[FD_WRITE_INDEX]);
             //redirect reading
-            dup2(fd[FD_READ_INDEX],STDIN_FILENO);
+            if(dup2(fd[FD_READ_INDEX],STDIN_FILENO)==FAILED_VALUE){
+                writeErrorMessage();
+            }
             char *args[]={NULL};
             execvp(DIR,args);
             //error in execp

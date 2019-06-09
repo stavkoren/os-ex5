@@ -131,7 +131,7 @@ void moveShapeLeft(){
  * move shape one index right if possible
  */
 void moveShapeRight(){
-    if(shape.endPoint.column<FRAME_SIZE+INDEX_BACK){
+    if(shape.endPoint.column<FRAME_SIZE+INDEX_BACK+INDEX_BACK){
         shape.beginPoint.column=shape.beginPoint.column+INDEX_NEXT;
         shape.endPoint.column=shape.endPoint.column+INDEX_NEXT;
     }
@@ -147,7 +147,7 @@ void rotateShape(){
         shape.endPoint.column+=INDEX_NEXT;
     }else{
         //the shape is horizontal
-        if(shape.endPoint.row<FRAME_SIZE+INDEX_BACK){
+        if(shape.endPoint.row<FRAME_SIZE+INDEX_BACK&&shape.beginPoint.row>FIRST_ROW+INDEX_NEXT){
             shape.beginPoint.row+=INDEX_BACK;
             shape.endPoint.row+=INDEX_NEXT;
             shape.beginPoint.column+=INDEX_NEXT;
@@ -206,13 +206,13 @@ void alarmHand(int signum,siginfo_t *info, void*ptr){
  * @param ptr
  */
 void signalHandler(int signum,siginfo_t *info, void*ptr){
-    printf("signal\n");
     char userChoice[1];
     read(STDIN_FILENO,userChoice,SIZE_OF_BYTES_TO_READ);
     if(userChoice[FIRST_INDEX]==QUIT_CHAR){
         exitProgram();
     }
     clearScreen();
+    deleteShape();
     if(userChoice[FIRST_INDEX]==MOVE_DOWN_CHAR){
         moveShapeDown();
     }
